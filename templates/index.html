@@ -13,15 +13,22 @@
 
         <form class="grid" action="/result" method="POST">
 
-          {% if name %}
+          {% if palabra == 'NADA'%}
             <center>
-              <h3 style="color: blue;" class="let_space">La palabra {{name}} {{resultado}} es una polla.</h3>
+              <h3 style="color: blue;" class="let_space">Por favor, introduce una palabras.</h3>
             </center> 
-
           {% endif %}
-           
+          
+          {% if not (palabra == 'NADA' ) and palabra %}
+            <center>
+              <h3 style="color: blue;" class="let_space"><font color="#FF2626">Palabra: </font> {{palabra}} <br><br> <font color="#FF2626">Consonante:</font> {{consonante}} <br><br><font color="#FF2626">Asonante: </font> {{asonante}} <br><br><font color="#FF2626">Temas: </font> {{temas}}.</h3>
+            </center> 
+          {% endif %}
+
           <label for="name">Dime una palabra:</label>
-          <input type="text" id="name" name="name">
+          <input type="text" id="palabra" name="palabra">
+          <label for="name">Dame una serie de temas separados por comas:</label>
+          <input type="text" id="temas" name="temas">
 
           <center><input class="file_submit" type="Submit"></center>
 
