@@ -1,0 +1,8 @@
+.venv/
+.nltk_data/
+.cache/
+__pycache__/
+*.pyc
+normalized.vec
+rimasia-web.err.log
+rimasia-web.out.log

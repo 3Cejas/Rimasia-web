@@ -1,49 +1,198 @@
-<html> 
-	<head>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		
-		<link rel="stylesheet" type="text/css" href="../static/index.css"> 
+﻿<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rimasia</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg', v=asset_versions['favicon.svg']) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css', v=asset_versions['index.css']) }}">
+  </head>
+  <body>
+    <audio
+      id="space-audio"
+      autoplay
+      loop
+      preload="auto"
+      hidden
+      aria-hidden="true"
+    >
+      <source src="{{ url_for('static', filename='sonido_espacio.mp3', v=asset_versions['sonido_espacio.mp3']) }}" type="audio/mpeg">
+    </audio>
+    <canvas id="embedding-sky" aria-hidden="true"></canvas>
+    <div class="background-vignette" aria-hidden="true"></div>
 
+    <header class="search-dock" id="search-dock">
+      <section class="search-dock-panel">
+        <div class="search-dock-header">
+          <div class="brand-lockup">
+            <svg class="brand-mark" viewBox="0 0 72 72" aria-hidden="true">
+              <path d="M16 52 L28 22 L45 31 L56 16" />
+              <path d="M28 22 L50 52" />
+              <path d="M16 52 L50 52" />
+              <circle cx="16" cy="52" r="4.2" />
+              <circle cx="28" cy="22" r="3.8" />
+              <circle cx="45" cy="31" r="3.4" />
+              <circle cx="56" cy="16" r="4.6" />
+              <circle cx="50" cy="52" r="5" />
+            </svg>
+            <div class="brand-copy">
+              <h1>Rimasia</h1>
+              <div class="brand-credit-row">
+                <p class="brand-credit">por Tres Cejas</p>
+                <div class="brand-socials" aria-label="Redes de Tres Cejas">
+                  <a
+                    class="brand-social-link"
+                    href="https://github.com/3Cejas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="GitHub de Tres Cejas"
+                    title="GitHub"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 2.25a9.75 9.75 0 0 0-3.083 19.004c.487.09.665-.212.665-.47 0-.232-.009-.846-.013-1.661-2.706.588-3.278-1.304-3.278-1.304-.443-1.125-1.081-1.425-1.081-1.425-.884-.605.067-.593.067-.593.977.069 1.492 1.003 1.492 1.003.869 1.49 2.28 1.06 2.835.81.088-.63.34-1.06.618-1.304-2.16-.246-4.432-1.08-4.432-4.808 0-1.062.379-1.93 1.002-2.61-.1-.246-.434-1.238.095-2.58 0 0 .818-.262 2.68.998A9.3 9.3 0 0 1 12 6.842a9.3 9.3 0 0 1 2.442.329c1.861-1.26 2.678-.998 2.678-.998.53 1.342.196 2.334.096 2.58.624.68 1.001 1.548 1.001 2.61 0 3.737-2.275 4.559-4.441 4.8.35.3.662.893.662 1.8 0 1.298-.012 2.347-.012 2.666 0 .26.176.565.67.469A9.75 9.75 0 0 0 12 2.25Z" />
+                    </svg>
+                  </a>
+                  <a
+                    class="brand-social-link"
+                    href="https://www.instagram.com/3cejas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Instagram de Tres Cejas"
+                    title="Instagram"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M7.5 3.75h9A3.75 3.75 0 0 1 20.25 7.5v9a3.75 3.75 0 0 1-3.75 3.75h-9A3.75 3.75 0 0 1 3.75 16.5v-9A3.75 3.75 0 0 1 7.5 3.75Zm0 1.5A2.25 2.25 0 0 0 5.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9Zm9.375 1.125a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5ZM12 7.5A4.5 4.5 0 1 1 7.5 12 4.505 4.505 0 0 1 12 7.5Zm0 1.5A3 3 0 1 0 15 12a3.004 3.004 0 0 0-3-3Z" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="dock-toggle"
+            id="dock-toggle"
+            aria-controls="search-dock-content"
+            aria-expanded="true"
+            aria-label="Contraer panel de búsqueda"
+            title="Contraer panel"
+          >
+            <span class="dock-toggle-glyph" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="search-dock-content" id="search-dock-content">
+          <form class="query-form" action="/result" method="POST">
+            <label for="palabra">Palabra objetivo</label>
+            <input
+              id="palabra"
+              name="palabra"
+              type="text"
+              value="{{ palabra|capitalize }}"
+              placeholder="Ejemplo: Cancion"
+              autocomplete="off"
+            >
 
+            <label for="temas-input">Conceptos separados por comas</label>
+            <div class="concept-editor" id="concept-editor">
+              <div class="concept-chips" id="concept-chips">
+                {% for concepto in conceptos %}
+                  <span class="concept-chip" data-value="{{ concepto }}">
+                    <span>{{ concepto|capitalize }}</span>
+                    <button
+                      type="button"
+                      class="concept-chip-remove"
+                      data-remove-concept="{{ concepto }}"
+                      aria-label="Quitar {{ concepto|capitalize }}"
+                    >&times;</button>
+                  </span>
+                {% endfor %}
+                <input
+                  id="temas-input"
+                  type="text"
+                  class="concept-chip-input"
+                  placeholder="Ejemplo: Amor, noche, ciudad"
+                  autocomplete="off"
+                >
+              </div>
+              <input
+                id="temas"
+                name="temas"
+                type="hidden"
+                value="{{ temas }}"
+              >
+            </div>
 
+            <input
+              id="pagina"
+              name="pagina"
+              type="hidden"
+              value="{{ result_page }}"
+            >
 
-	</head>
-	
-	<body>
+            <button type="submit" class="rhyme-submit" id="rhyme-submit" aria-live="polite">
+              <span class="rhyme-submit-bar" aria-hidden="true"></span>
+              <span class="rhyme-submit-label">
+                <span class="rhyme-submit-idle">RIMAR</span>
+                <span class="rhyme-submit-loading">RIMANDO<span class="loading-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span></span>
+              </span>
+            </button>
 
-        <form class="grid" action="/result" method="POST">
+            <div
+              class="explore-controls{% if consonant_total + assonant_total <= 0 %} is-hidden{% endif %}"
+              id="explore-controls"
+              data-result-page="{{ result_page }}"
+              data-page-count="{{ page_count }}"
+              data-consonant-total="{{ consonant_total }}"
+              data-assonant-total="{{ assonant_total }}"
+            >
+              <button
+                type="button"
+                class="explore-more-button{% if page_count <= 1 or result_page + 1 >= page_count %} is-hidden{% endif %}"
+                id="explore-more-button"
+              >DESCUBRIR MÁS ({{ result_page + 1 }} de {{ page_count }})</button>
+            </div>
+          </form>
 
-          {% if palabra == 'NADA'%}
-            <center>
-              <h3 style="color: blue;" class="let_space">Por favor, introduce una palabras.</h3>
-            </center> 
-          {% endif %}
-          
-          {% if not (palabra == 'NADA' ) and palabra %}
-            <center>
-              <h3 style="color: blue;" class="let_space"><font color="#FF2626">Palabra: </font> {{palabra}} <br><br> <font color="#FF2626">Consonante:</font> {{consonante}} <br><br><font color="#FF2626">Asonante: </font> {{asonante}} <br><br><font color="#FF2626">Temas: </font> {{temas}}.</h3>
-            </center> 
-          {% endif %}
+          <div class="form-message-region" id="form-message-region">
+            {% if error_message %}
+              <div class="message error-message">{{ error_message }}</div>
+            {% endif %}
+            {% if warning_message %}
+              <div class="message warning-message">{{ warning_message }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    </header>
 
-          <label for="name">Dime una palabra:</label>
-          <input type="text" id="palabra" name="palabra">
-          <label for="name">Dame una serie de temas separados por comas:</label>
-          <input type="text" id="temas" name="temas">
+    <aside class="query-legend-panel" aria-label="Leyenda de color">
+      <span class="query-legend-label">Leyenda</span>
+      <div class="query-legend-items">
+        <span class="query-legend-item">
+          <span class="query-legend-swatch word"></span>
+          Palabra
+        </span>
+        <span class="query-legend-item">
+          <span class="query-legend-swatch assonant"></span>
+          Rima asonante
+        </span>
+        <span class="query-legend-item">
+          <span class="query-legend-swatch consonant"></span>
+          Rima consonante
+        </span>
+      </div>
+    </aside>
 
-          <center><input class="file_submit" type="Submit"></center>
+    <aside class="embedding-signature">
+      <span>{{ embedding_metadata.word_count_label }} palabras</span>
+      <span>{{ embedding_metadata.model_name }}</span>
+    </aside>
 
-        </form>
-
-        
-
-        
-
-        
-        <br>
-        <br>
-        <br>
-
-
-    </body>
-
+    <script id="embedding-graph" type="application/json">{{ graph_data | tojson }}</script>
+    <script id="embedding-highlights" type="application/json">{{ highlight_words | tojson }}</script>
+    <script id="query-constellation-data" type="application/json">{{ query_constellation | tojson }}</script>
+    <script src="{{ url_for('static', filename='query-form.js', v=asset_versions['query-form.js']) }}"></script>
+    <script src="{{ url_for('static', filename='constellation.js', v=asset_versions['constellation.js']) }}"></script>
+    <script src="{{ url_for('static', filename='space-audio.js', v=asset_versions['space-audio.js']) }}"></script>
+  </body>
 </html>
