@@ -71,6 +71,11 @@
     let dragStartPanX = 0;
     let dragStartPanY = 0;
     let dragMoved = false;
+    const activePointers = new Map();
+    let pinchActive = false;
+    let pinchStartDistance = 0;
+    let pinchStartScale = 1;
+    let pinchAnchorWorld = { x: 0, y: 0 };
     let sceneCenterX = 0;
     let sceneCenterY = 0;
     let dockInset = 0;
@@ -231,6 +236,62 @@
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
       };
+    }
+
+    function storePointerEvent(event) {
+      activePointers.set(event.pointerId, {
+        clientX: event.clientX,
+        clientY: event.clientY,
+      });
+    }
+
+    function getActivePointerPair() {
+      return [...activePointers.values()].slice(0, 2);
+    }
+
+    function beginPinchGesture() {
+      const [firstPointer, secondPointer] = getActivePointerPair();
+      if (!firstPointer || !secondPointer) {
+        return;
+      }
+
+      const deltaX = secondPointer.clientX - firstPointer.clientX;
+      const deltaY = secondPointer.clientY - firstPointer.clientY;
+      pinchStartDistance = Math.max(1, Math.hypot(deltaX, deltaY));
+      pinchStartScale = viewScale;
+      pinchActive = true;
+      draggingPointerId = null;
+      dragMoved = true;
+
+      const rect = canvas.getBoundingClientRect();
+      const centerX = ((firstPointer.clientX + secondPointer.clientX) / 2) - rect.left;
+      const centerY = ((firstPointer.clientY + secondPointer.clientY) / 2) - rect.top;
+      pinchAnchorWorld = screenToWorld(centerX, centerY);
+      canvas.classList.add('is-dragging');
+    }
+
+    function updatePinchGesture() {
+      const [firstPointer, secondPointer] = getActivePointerPair();
+      if (!firstPointer || !secondPointer) {
+        return;
+      }
+
+      const deltaX = secondPointer.clientX - firstPointer.clientX;
+      const deltaY = secondPointer.clientY - firstPointer.clientY;
+      const currentDistance = Math.max(1, Math.hypot(deltaX, deltaY));
+      const nextScale = clamp(
+        pinchStartScale * (currentDistance / pinchStartDistance),
+        0.7,
+        MAX_VIEW_SCALE,
+      );
+      const rect = canvas.getBoundingClientRect();
+      const centerX = ((firstPointer.clientX + secondPointer.clientX) / 2) - rect.left;
+      const centerY = ((firstPointer.clientY + secondPointer.clientY) / 2) - rect.top;
+
+      viewScale = nextScale;
+      panX = centerX - ((pinchAnchorWorld.x - sceneCenterX) * viewScale + sceneCenterX);
+      panY = centerY - ((pinchAnchorWorld.y - sceneCenterY) * viewScale + sceneCenterY);
+      clampPan();
     }
 
     function drawBaseLabels(nodes, zoomVisualScale, deltaMs) {
@@ -533,6 +594,7 @@
       clampPan();
     }, { passive: false });
     canvas.addEventListener('pointerdown', (event) => {
+      storePointerEvent(event);
       draggingPointerId = event.pointerId;
       dragStartClientX = event.clientX;
       dragStartClientY = event.clientY;
@@ -541,8 +603,22 @@
       dragMoved = false;
       canvas.classList.add('is-dragging');
       canvas.setPointerCapture(event.pointerId);
+
+      if (activePointers.size === 2) {
+        beginPinchGesture();
+      }
     });
     canvas.addEventListener('pointermove', (event) => {
+      if (!activePointers.has(event.pointerId)) {
+        return;
+      }
+
+      storePointerEvent(event);
+      if (pinchActive) {
+        updatePinchGesture();
+        return;
+      }
+
       if (event.pointerId !== draggingPointerId) {
         return;
       }
@@ -559,14 +635,34 @@
     });
 
     function endDrag(event) {
-      if (event.pointerId !== draggingPointerId) {
-        return;
-      }
-
-      draggingPointerId = null;
-      canvas.classList.remove('is-dragging');
+      activePointers.delete(event.pointerId);
       if (canvas.hasPointerCapture(event.pointerId)) {
         canvas.releasePointerCapture(event.pointerId);
+      }
+
+      if (pinchActive) {
+        pinchActive = false;
+        pinchStartDistance = 0;
+
+        if (activePointers.size === 1) {
+          const [remainingPointerId, remainingPointer] = activePointers.entries().next().value;
+          draggingPointerId = remainingPointerId;
+          dragStartClientX = remainingPointer.clientX;
+          dragStartClientY = remainingPointer.clientY;
+          dragStartPanX = panX;
+          dragStartPanY = panY;
+          dragMoved = false;
+          canvas.classList.add('is-dragging');
+          return;
+        }
+      }
+
+      if (event.pointerId === draggingPointerId) {
+        draggingPointerId = null;
+      }
+
+      if (activePointers.size === 0) {
+        canvas.classList.remove('is-dragging');
       }
     }
 

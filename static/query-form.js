@@ -75,24 +75,18 @@
       return;
     }
 
-    const compactViewport = isCompactViewport();
-    const effectiveCollapsed = !compactViewport && Boolean(nextCollapsed);
+    const effectiveCollapsed = Boolean(nextCollapsed);
     searchDock.classList.toggle('is-collapsed', effectiveCollapsed);
-    dockToggle.disabled = compactViewport;
     dockToggle.setAttribute('aria-expanded', effectiveCollapsed ? 'false' : 'true');
     dockToggle.setAttribute(
       'aria-label',
-      compactViewport
-        ? 'El panel no se puede contraer en esta anchura'
-        : effectiveCollapsed
-          ? 'Desplegar panel de búsqueda'
-          : 'Contraer panel de búsqueda',
+      effectiveCollapsed
+        ? 'Desplegar panel de busqueda'
+        : 'Contraer panel de busqueda',
     );
-    dockToggle.title = compactViewport
-      ? 'No disponible en móvil'
-      : effectiveCollapsed
-        ? 'Desplegar panel'
-        : 'Contraer panel';
+    dockToggle.title = effectiveCollapsed
+      ? 'Desplegar panel'
+      : 'Contraer panel';
     if (dockContent instanceof HTMLElement) {
       dockContent.setAttribute('aria-hidden', effectiveCollapsed ? 'true' : 'false');
     }
@@ -178,11 +172,42 @@
     input.value = '';
   }
 
+  const TOAST_VISIBLE_MS = 5200;
+  const TOAST_EXIT_MS = 420;
+
   function createMessageElement(message, kind) {
     const node = document.createElement('div');
     node.className = `message ${kind === 'warning' ? 'warning-message' : 'error-message'}`;
     node.textContent = message;
     return node;
+  }
+
+  function scheduleToastLifecycle(node, delayMs = TOAST_VISIBLE_MS) {
+    window.requestAnimationFrame(() => {
+      node.classList.add('is-visible');
+    });
+
+    window.setTimeout(() => {
+      node.classList.add('is-hiding');
+      window.setTimeout(() => {
+        if (node.parentElement === messageRegion) {
+          node.remove();
+        }
+      }, TOAST_EXIT_MS);
+    }, delayMs);
+  }
+
+  function hydrateMessageRegion() {
+    if (!(messageRegion instanceof HTMLElement)) {
+      return;
+    }
+
+    Array.from(messageRegion.children).forEach((node, index) => {
+      if (!(node instanceof HTMLElement)) {
+        return;
+      }
+      scheduleToastLifecycle(node, TOAST_VISIBLE_MS + index * 240);
+    });
   }
 
   function renderMessages(errorMessage, warningMessage) {
@@ -193,14 +218,19 @@
     messageRegion.textContent = '';
 
     if (errorMessage) {
-      messageRegion.appendChild(createMessageElement(errorMessage, 'error'));
+      const errorNode = createMessageElement(errorMessage, 'error');
+      messageRegion.appendChild(errorNode);
+      scheduleToastLifecycle(errorNode);
     }
     if (warningMessage) {
-      messageRegion.appendChild(createMessageElement(warningMessage, 'warning'));
+      const warningNode = createMessageElement(warningMessage, 'warning');
+      messageRegion.appendChild(warningNode);
+      scheduleToastLifecycle(warningNode, TOAST_VISIBLE_MS + 180);
     }
   }
 
   function syncTargetInputDisplay() {
+
     if (!(targetInput instanceof HTMLInputElement)) {
       return;
     }
@@ -370,6 +400,8 @@
     page_count: currentPageCount,
     query_constellation: initialQueryPayload,
   });
+
+  hydrateMessageRegion();
 
   editor.addEventListener('click', () => {
     if (searchDock instanceof HTMLElement && searchDock.classList.contains('is-collapsed')) {

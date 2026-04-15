@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
   <head>
     <meta charset="utf-8">
@@ -153,17 +153,17 @@
             </div>
           </form>
 
-          <div class="form-message-region" id="form-message-region">
-            {% if error_message %}
-              <div class="message error-message">{{ error_message }}</div>
-            {% endif %}
-            {% if warning_message %}
-              <div class="message warning-message">{{ warning_message }}</div>
-            {% endif %}
-          </div>
         </div>
       </section>
     </header>
+    <div class="form-message-region" id="form-message-region" aria-live="polite" aria-atomic="true">
+      {% if error_message %}
+        <div class="message error-message">{{ error_message }}</div>
+      {% endif %}
+      {% if warning_message %}
+        <div class="message warning-message">{{ warning_message }}</div>
+      {% endif %}
+    </div>
 
     <aside class="query-legend-panel" aria-label="Leyenda de color">
       <span class="query-legend-label">Leyenda</span>
